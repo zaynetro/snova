@@ -14,6 +14,8 @@
       * `-r` Search files recursively
   * [x] Set git email address `git config [--global] user.email "EMAIL"`
   * [ ] awk
+* [ ] Use alternative screen for building a command
+* [ ] Autocomplete and verify path value type
 * [ ] Allow defining commands in a toml file
 * [ ] Use bold and underline text for better contrast
 * [ ] Pipe commands

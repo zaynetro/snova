@@ -6,6 +6,8 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::{clear, cursor};
 
+use crate::cmd::ValueType;
+
 pub trait Choice {
     /// User visible text
     type Text: Display;
@@ -25,21 +27,25 @@ impl Choice for &'static str {
 const ROWS_PLACEHOLDER: u16 = 5;
 
 pub struct Readline {
-    // TODO: which type of input to expect String, Number, Path, ..
-    expect_input: (),
+    expect_input: Option<ValueType>,
     prefix: String,
 }
 
 impl Readline {
     pub fn new() -> Self {
         Self {
-            expect_input: (),
+            expect_input: None,
             prefix: "$".into(),
         }
     }
 
     pub fn prefix(mut self, value: impl Into<String>) -> Self {
         self.prefix = value.into();
+        self
+    }
+
+    pub fn expect(mut self, expect_type: ValueType) -> Self {
+        self.expect_input = Some(expect_type);
         self
     }
 
@@ -63,10 +69,15 @@ impl Readline {
                     return Err(anyhow!("Terminated"));
                 }
                 Key::Char('\n') => {}
-                Key::Char(c) => {
-                    // TODO: deny unexpected_input
-                    input.push(c);
-                }
+                Key::Char(c) => match &self.expect_input {
+                    Some(expect) if expect.is_valid_char(c) => {
+                        input.push(c);
+                    }
+                    Some(_) => {}
+                    None => {
+                        input.push(c);
+                    }
+                },
                 Key::Backspace => {
                     input.pop();
                 }

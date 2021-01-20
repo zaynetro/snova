@@ -8,11 +8,11 @@ pub fn all() -> Vec<Command> {
             groups: vec![
                 CmdGroup {
                     name: "PATTERN".into(),
-                    expect: GroupValue::String,
+                    expect: GroupValue::Single(ValueType::String),
                 },
                 CmdGroup {
                     name: "PATH".into(),
-                    expect: GroupValue::Path,
+                    expect: GroupValue::Single(ValueType::Path),
                 },
                 CmdGroup {
                     name: "OPTIONS".into(),
@@ -72,7 +72,7 @@ pub fn all() -> Vec<Command> {
             groups: vec![
                 CmdGroup {
                     name: "PATH".into(),
-                    expect: GroupValue::Path,
+                    expect: GroupValue::Single(ValueType::Path),
                 },
                 CmdGroup {
                     name: "EXPRESSION".into(),
@@ -104,7 +104,7 @@ pub fn all() -> Vec<Command> {
             groups: vec![
                 CmdGroup {
                     name: "EMAIL".into(),
-                    expect: GroupValue::String,
+                    expect: GroupValue::Single(ValueType::Path),
                 },
                 CmdGroup {
                     name: "OPTIONS".into(),

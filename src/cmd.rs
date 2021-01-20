@@ -13,8 +13,7 @@ pub struct CmdGroup {
 }
 
 pub enum GroupValue {
-    String,
-    Path,
+    Single(ValueType),
     Flags(Vec<Flag>),
 }
 
@@ -35,9 +34,18 @@ pub struct FlagExpectation {
     pub value_type: ValueType,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 pub enum ValueType {
     String,
     Path,
     Number,
+}
+
+impl ValueType {
+    pub fn is_valid_char(&self, c: char) -> bool {
+        match self {
+            ValueType::String | ValueType::Path => true,
+            ValueType::Number => c.is_digit(10),
+        }
+    }
 }

@@ -74,9 +74,12 @@ fn build_cmd() -> Result<Option<String>> {
 
     for group in &cmd.groups {
         match &group.expect {
-            GroupValue::String | GroupValue::Path => {
+            GroupValue::Single(expect_type) => {
                 let prefix = format!("{}:", group.name);
-                let value = view::Readline::new().prefix(&prefix).line()?;
+                let value = view::Readline::new()
+                    .prefix(&prefix)
+                    .expect(expect_type.clone())
+                    .line()?;
                 if value.is_empty() {
                     return Err(anyhow!("No value for {} group", group.name));
                 }
@@ -114,7 +117,10 @@ fn build_cmd() -> Result<Option<String>> {
                                 Some(expect) => match expect.value_type {
                                     ValueType::String | ValueType::Path | ValueType::Number => {
                                         let prefix = format!("{}:", flag.template);
-                                        let value = view::Readline::new().prefix(&prefix).line()?;
+                                        let value = view::Readline::new()
+                                            .prefix(&prefix)
+                                            .expect(expect.value_type.clone())
+                                            .line()?;
                                         if value.is_empty() {
                                             return Err(anyhow!(
                                                 "No value for {} flag",
