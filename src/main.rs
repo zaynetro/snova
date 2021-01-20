@@ -1,45 +1,21 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use anyhow::{Context, Result};
-use termion::{color, style};
+use anyhow::{anyhow, Context, Result};
 
-mod dynfmt;
+mod builtin;
+mod cmd;
+// TODO: do we still need it?
+// mod dynfmt;
 mod view;
 
+use cmd::*;
 use view::Choice;
-
-#[derive(Debug)]
-struct Command {
-    cmd: String,
-    description: String,
-    flags: Vec<Flag>,
-    arguments: Vec<Arg>,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-struct Flag {
-    template: String,
-    description: String,
-    expected_value: Option<ValueType>,
-}
-
-#[derive(Debug)]
-struct Arg {
-    description: String,
-    expected_value: Option<ValueType>,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-enum ValueType {
-    String,
-    Path,
-    Number,
-}
 
 fn main() {
     match build_cmd() {
+        // match play() {
         Ok(Some(cmd)) => {
-            println!("Done: {}", cmd);
+            println!("{}", cmd);
         }
         Ok(None) => {
             println!("Nothing selected.");
@@ -50,66 +26,38 @@ fn main() {
     }
 }
 
-/// Build command and return the result
-fn build_cmd() -> Result<Option<String>> {
+fn play() -> Result<Option<String>> {
+    // let cmd =  view::Readline::new().prefix("yep").line()?;
+    // Ok(Some(cmd))
+
+    // let commands = vec!["One", "Two"];
     let commands = vec![
-        Command {
-            // TODO: couldn't this be a template also?
-            cmd: "find".into(),
-            description: "Find file or directory".into(),
-            flags: vec![Flag {
-                template: "-name {name}".into(),
-                description: "File name (glob syntax)".into(),
-                expected_value: Some(ValueType::String),
-            }],
-            arguments: vec![Arg {
-                description: "Directory to search in".into(),
-                expected_value: Some(ValueType::Path),
-            }],
-        },
-        Command {
-            cmd: "grep".into(),
-            description: "Find lines in a file".into(),
-            flags: vec![
-                Flag {
-                    template: "-i".into(),
-                    description: "Case insensitive matching".into(),
-                    expected_value: None,
-                },
-                Flag {
-                    template: "-A{num}".into(),
-                    description: "Print {num} lines after the matched line".into(),
-                    expected_value: Some(ValueType::Number),
-                },
-            ],
-            arguments: vec![
-                Arg {
-                    description: "Pattern".into(),
-                    expected_value: Some(ValueType::String),
-                },
-                Arg {
-                    description: "File".into(),
-                    expected_value: Some(ValueType::Path),
-                },
-            ],
-        },
+        "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
     ];
-
-    // TODO: steps:
-    // 1. Type to filter commands by description
-    // 2. Type to filter command options by description
-    // 3. If option expects a value than input it
-    // 4. Present command and exit
-
-    let mut result = String::new();
-    println!("Choose command:");
-    // TODO: in here I want a fixed value and the command not just input!
-    // Readline should return a value from autocomplete method!
     let cmd = view::Readline::new()
         .autocomplete(|input| {
             commands
                 .iter()
-                .filter(|cmd| cmd.description.contains(input))
+                .filter(|cmd| cmd.to_lowercase().contains(&input.to_lowercase()))
+                .collect()
+        })
+        .context("Pick command")?;
+
+    Ok(cmd.map(|c| c.to_string()))
+}
+
+/// Build command and return the result
+fn build_cmd() -> Result<Option<String>> {
+    let commands = builtin::all();
+    let cmd = view::Readline::new()
+        .autocomplete(|input| {
+            commands
+                .iter()
+                .filter(|cmd| {
+                    cmd.description
+                        .to_lowercase()
+                        .contains(&input.to_lowercase())
+                })
                 .collect()
         })
         .context("Pick command")?;
@@ -121,77 +69,90 @@ fn build_cmd() -> Result<Option<String>> {
         }
     };
 
-    result.push_str(&cmd.cmd);
-    println!("Command: {}", result);
+    println!("Command: {}", cmd.template);
+    let mut user_input = HashMap::new();
 
-    println!("Choose flags: (choose empty to skip)");
-    // Prompt for flags
-    let mut available_flags: HashSet<&Flag> = cmd.flags.iter().collect();
-
-    loop {
-        if available_flags.is_empty() {
-            break;
-        }
-
-        // TODO: filter out already selected flags
-        // TODO: skip this step if there are no more flags
-        let flag = view::Readline::new()
-            .autocomplete(|input| {
-                available_flags
-                    .iter()
-                    .filter(|flag| flag.description.contains(input))
-                    .cloned()
-                    .collect()
-            })
-            .context("Pick flag")?;
-
-        let flag = match flag {
-            Some(flag) => flag,
-            None => {
-                break;
-            }
-        };
-
-        available_flags.remove(flag);
-
-        // Enter value
-        // TODO: ideally I want to split the template into to parts: prefix and suffix so that we can actually show building command
-        let value = match flag.expected_value {
-            Some(ValueType::Path) => view::Readline::new().prefix(&result).line()?,
-            Some(ValueType::String) => view::Readline::new().prefix(&result).line()?,
-            Some(ValueType::Number) => view::Readline::new().prefix(&result).line()?,
-            None => {
-                result.push(' ');
-                result.push_str(&flag.template);
+    for group in &cmd.groups {
+        match &group.expect {
+            GroupValue::String | GroupValue::Path => {
+                let prefix = format!("{}:", group.name);
+                let value = view::Readline::new().prefix(&prefix).line()?;
+                if value.is_empty() {
+                    return Err(anyhow!("No value for {} group", group.name));
+                }
+                user_input.insert(group.name.clone(), value);
+                let result = (cmd.build)(&user_input);
                 println!("Command: {}", result);
-                continue;
             }
-        };
+            GroupValue::Flags(flags) => {
+                let mut used_flags = vec![];
+                let mut combined = String::new();
+                user_input.insert(group.name.clone(), combined.clone());
 
-        result.push(' ');
-        let mut ctx = HashMap::new();
-        // TODO: if value is not only alphanumeric then wrap inside quotes
-        ctx.insert("name".to_string(), value);
-        let applied = dynfmt::format(&flag.template, ctx)?;
-        result.push_str(&applied);
-        println!("Command: {}", result);
+                loop {
+                    let flag = view::Readline::new()
+                        .autocomplete(|input| {
+                            flags
+                                .iter()
+                                .filter(|flag| !used_flags.contains(flag))
+                                .filter(|flag| {
+                                    flag.description
+                                        .to_lowercase()
+                                        .contains(&input.to_lowercase())
+                                })
+                                .collect()
+                        })
+                        .context("Pick a flag")?;
+
+                    match flag {
+                        Some(flag) => {
+                            // Remember that this flag was asked
+                            used_flags.push(flag);
+
+                            match &flag.expect {
+                                // Ask for input
+                                Some(expect) => match expect.value_type {
+                                    ValueType::String | ValueType::Path | ValueType::Number => {
+                                        let prefix = format!("{}:", flag.template);
+                                        let value = view::Readline::new().prefix(&prefix).line()?;
+                                        if value.is_empty() {
+                                            return Err(anyhow!(
+                                                "No value for {} flag",
+                                                flag.template
+                                            ));
+                                        }
+                                        let result = (expect.build)(&value);
+                                        combined.push_str(&result);
+                                        combined.push(' ');
+                                    }
+                                },
+                                // Save flag
+                                None => {
+                                    combined.push_str(&flag.template);
+                                    combined.push(' ');
+                                }
+                            }
+                        }
+                        None => {
+                            // Nothing selected abort
+                            break;
+                        }
+                    }
+
+                    user_input.insert(group.name.clone(), combined.clone());
+
+                    if flags.len() == used_flags.len() {
+                        break;
+                    }
+
+                    let result = (cmd.build)(&user_input);
+                    println!("Command: {}", result);
+                }
+            }
+        }
     }
 
-    // Prompt for commands
-    for arg in &cmd.arguments {
-        let value = match arg.expected_value {
-            Some(ValueType::Path) => view::Readline::new().prefix(&arg.description).line()?,
-            Some(ValueType::String) => view::Readline::new().prefix(&arg.description).line()?,
-            Some(ValueType::Number) => view::Readline::new().prefix(&arg.description).line()?,
-            None => {
-                continue;
-            }
-        };
-
-        result.push(' ');
-        result.push_str(&value);
-    }
-
+    let result = (cmd.build)(&user_input);
     Ok(Some(result))
 }
 
