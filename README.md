@@ -14,10 +14,12 @@
       * `-r` Search files recursively
   * [x] Set git email address `git config [--global] user.email "EMAIL"`
   * [ ] awk
+  * [x] curl
 * [ ] Use alternative screen for building a command
 * [ ] Autocomplete and verify path value type
 * [ ] Allow defining commands in a toml file
 * [ ] Use bold and underline text for better contrast
+* [ ] Support enum value type (e.g curl methods GET/POST/..)
 * [ ] Pipe commands
 * [ ] Killer feature: execute the same command over SSH
 

@@ -126,5 +126,58 @@ pub fn all() -> Vec<Command> {
                 )
             }),
         },
+        Command {
+            template: "curl [OPTIONS] URL".into(),
+            description: "Send an HTTP request".into(),
+            groups: vec![
+                CmdGroup {
+                    name: "URL".into(),
+                    expect: GroupValue::Single(ValueType::String),
+                },
+                CmdGroup {
+                    name: "OPTIONS".into(),
+                    expect: GroupValue::Flags(vec![Flag {
+                        template: "-H _VALUE_".into(),
+                        description: "Include header (e.g -H \"Content-Type: application/json\")".into(),
+                        expect: Some(FlagExpectation {
+                            build: Box::new(|value| format!("-H {}", value)),
+                            value_type: ValueType::String,
+                        })
+                    }, Flag {
+                        template: "-X _METHOD_".into(),
+                        description: "Specify a request method to use".into(),
+                        expect: Some(FlagExpectation {
+                            build: Box::new(|method| format!("-X {}", method)),
+                            value_type: ValueType::String,
+                        })
+                    }, Flag {
+                        template: "-v".into(),
+                        description: "Verbose logging".into(),
+                        expect: None,
+                    }, Flag {
+                        template: "-d _DATA_".into(),
+                        description: "Specify request payload (use '@myfile.txt' to read data from file)".into(),
+                        expect: Some(FlagExpectation {
+                            build: Box::new(|data| format!("-d {}", data)),
+                            value_type: ValueType::String,
+                        })
+                    }, Flag {
+                        template: "-L".into(),
+                        description: "Follow redirects".into(),
+                        expect: None,
+                    }]),
+                },
+            ],
+            build: Box::new(|options| {
+                format!(
+                    "curl {} {}",
+                    options.get("OPTIONS").unwrap_or(&"OPTIONS".to_string()).trim(),
+                    options
+                        .get("URL")
+                        .unwrap_or(&"URL".to_string())
+                        .trim(),
+                )
+            }),
+        },
     ]
 }

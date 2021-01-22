@@ -110,6 +110,7 @@ fn build_cmd() -> Result<Option<String>> {
                     match flag {
                         Some(flag) => {
                             // Remember that this flag was asked
+                            // TODO: allow setting multiple same flags (e.g headers in curl)
                             used_flags.push(flag);
 
                             match &flag.expect {
