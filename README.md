@@ -15,7 +15,9 @@
   * [x] Set git email address `git config [--global] user.email "EMAIL"`
   * [ ] awk
   * [x] curl
-* [ ] Use alternative screen for building a command
+* [x] Use alternative screen for building a command
+* [ ] Improve UI flow
+  * How should it go?
 * [ ] Autocomplete and verify path value type
 * [ ] Allow defining commands in a toml file
 * [ ] Use bold and underline text for better contrast

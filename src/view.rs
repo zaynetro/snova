@@ -1,9 +1,8 @@
 use anyhow::{anyhow, Result};
 use std::fmt::Display;
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, Write};
 use termion::event::Key;
 use termion::input::TermRead;
-use termion::raw::IntoRawMode;
 use termion::{clear, cursor};
 
 use crate::cmd::ValueType;
@@ -26,16 +25,18 @@ impl Choice for &'static str {
 
 const ROWS_PLACEHOLDER: u16 = 5;
 
-pub struct Readline {
+pub struct Readline<'s> {
     expect_input: Option<ValueType>,
     prefix: String,
+    stdout: &'s mut dyn Write,
 }
 
-impl Readline {
-    pub fn new() -> Self {
+impl<'s> Readline<'s> {
+    pub fn new(stdout: &'s mut dyn Write) -> Self {
         Self {
             expect_input: None,
             prefix: "$".into(),
+            stdout,
         }
     }
 
@@ -51,21 +52,20 @@ impl Readline {
 
     /// Read a character mutate the input and return
     fn simple(&mut self, input: &mut String) -> Result<Key> {
-        let mut stdout = stdout().into_raw_mode()?;
         let stdin = stdin();
 
-        write!(stdout, "{}", clear::CurrentLine)?;
-        write!(stdout, "\r{} {}", self.prefix, input)?;
-        stdout.flush()?;
+        write!(self.stdout, "{}", clear::CurrentLine)?;
+        write!(self.stdout, "\r{} {}", self.prefix, input)?;
+        self.stdout.flush()?;
 
         for key in stdin.keys() {
             let key = key?;
 
             match key {
                 Key::Ctrl('c') => {
-                    write!(stdout, "{}", clear::CurrentLine)?;
-                    write!(stdout, "\r{} {}\n\r", self.prefix, input)?;
-                    stdout.flush()?;
+                    write!(self.stdout, "{}", clear::CurrentLine)?;
+                    write!(self.stdout, "\r{} {}\n\r", self.prefix, input)?;
+                    self.stdout.flush()?;
                     return Err(anyhow!("Terminated"));
                 }
                 Key::Char('\n') => {}
@@ -84,9 +84,9 @@ impl Readline {
                 _ => {}
             }
 
-            write!(stdout, "{}", clear::CurrentLine)?;
-            write!(stdout, "\r{} {}", self.prefix, input)?;
-            stdout.flush()?;
+            write!(self.stdout, "{}", clear::CurrentLine)?;
+            write!(self.stdout, "\r{} {}", self.prefix, input)?;
+            self.stdout.flush()?;
 
             return Ok(key);
         }
@@ -104,14 +104,11 @@ impl Readline {
     {
         let mut input = String::new();
         let mut selected: usize = 0;
-        let mut stdout = stdout().into_raw_mode()?;
         let mut i = 0;
-
-        // TODO: render choices in a separate screen for easier clean up
 
         loop {
             if i > 0 {
-                write!(stdout, "{}\r", cursor::Up(ROWS_PLACEHOLDER))?;
+                write!(self.stdout, "{}\r", cursor::Up(ROWS_PLACEHOLDER))?;
             }
             i += 1;
 
@@ -119,7 +116,7 @@ impl Readline {
             if choices.len() <= selected {
                 selected = choices.len().max(1) - 1;
             }
-            render_choices(&mut stdout, &choices, selected)?;
+            render_choices(&mut self.stdout, &choices, selected)?;
 
             match self.simple(&mut input)? {
                 Key::Char('\n') => {
@@ -133,8 +130,8 @@ impl Readline {
                 }
                 Key::Ctrl('d') => {
                     // Choose None
-                    write!(stdout, "\n\r")?;
-                    stdout.flush()?;
+                    write!(self.stdout, "\n\r")?;
+                    self.stdout.flush()?;
 
                     return Ok(None);
                 }
@@ -142,8 +139,8 @@ impl Readline {
             }
         }
 
-        write!(stdout, "\n\r")?;
-        stdout.flush()?;
+        write!(self.stdout, "\n\r")?;
+        self.stdout.flush()?;
 
         let choices = get_choices(&input);
         Ok(choices.get(selected).cloned())
@@ -164,9 +161,8 @@ impl Readline {
             }
         }
 
-        let mut stdout = stdout().into_raw_mode()?;
-        write!(stdout, "\n\r")?;
-        stdout.flush()?;
+        write!(self.stdout, "\n\r")?;
+        self.stdout.flush()?;
         Ok(input)
     }
 }

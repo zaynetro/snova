@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::stdout};
 
 use anyhow::{anyhow, Context, Result};
+use termion::{raw::IntoRawMode, screen::AlternateScreen};
 
 mod builtin;
 mod cmd;
@@ -26,30 +27,12 @@ fn main() {
     }
 }
 
-fn play() -> Result<Option<String>> {
-    // let cmd =  view::Readline::new().prefix("yep").line()?;
-    // Ok(Some(cmd))
-
-    // let commands = vec!["One", "Two"];
-    let commands = vec![
-        "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
-    ];
-    let cmd = view::Readline::new()
-        .autocomplete(|input| {
-            commands
-                .iter()
-                .filter(|cmd| cmd.to_lowercase().contains(&input.to_lowercase()))
-                .collect()
-        })
-        .context("Pick command")?;
-
-    Ok(cmd.map(|c| c.to_string()))
-}
-
 /// Build command and return the result
 fn build_cmd() -> Result<Option<String>> {
     let commands = builtin::all();
-    let cmd = view::Readline::new()
+    let mut screen = AlternateScreen::from(stdout().into_raw_mode()?);
+
+    let cmd = view::Readline::new(&mut screen)
         .autocomplete(|input| {
             commands
                 .iter()
@@ -76,7 +59,7 @@ fn build_cmd() -> Result<Option<String>> {
         match &group.expect {
             GroupValue::Single(expect_type) => {
                 let prefix = format!("{}:", group.name);
-                let value = view::Readline::new()
+                let value = view::Readline::new(&mut screen)
                     .prefix(&prefix)
                     .expect(expect_type.clone())
                     .line()?;
@@ -93,7 +76,7 @@ fn build_cmd() -> Result<Option<String>> {
                 user_input.insert(group.name.clone(), combined.clone());
 
                 loop {
-                    let flag = view::Readline::new()
+                    let flag = view::Readline::new(&mut screen)
                         .autocomplete(|input| {
                             flags
                                 .iter()
@@ -118,7 +101,7 @@ fn build_cmd() -> Result<Option<String>> {
                                 Some(expect) => match expect.value_type {
                                     ValueType::String | ValueType::Path | ValueType::Number => {
                                         let prefix = format!("{}:", flag.template);
-                                        let value = view::Readline::new()
+                                        let value = view::Readline::new(&mut screen)
                                             .prefix(&prefix)
                                             .expect(expect.value_type.clone())
                                             .line()?;
