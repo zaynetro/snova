@@ -2,6 +2,8 @@
 
 A CLI tool to help build you a command you forgot.
 
+See it in action: [asciicast](https://asciinema.org/a/cCcRDmN1NXuoM8bL4IGVbEXlh)
+
 ## TODO:
 
 * [x] Simple commands
