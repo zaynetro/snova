@@ -16,8 +16,7 @@
   * [ ] awk
   * [x] curl
 * [x] Use alternative screen for building a command
-* [ ] Improve UI flow
-  * How should it go?
+* [x] Improve UI flow
 * [ ] Autocomplete and verify path value type
 * [ ] Allow defining commands in a toml file
 * [ ] Use bold and underline text for better contrast

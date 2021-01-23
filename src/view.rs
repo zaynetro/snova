@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use std::fmt::Display;
 use std::io::{stdin, Write};
-use termion::event::Key;
+use termion::clear;
 use termion::input::TermRead;
-use termion::{clear, cursor};
+use termion::{event::Key, terminal_size};
 
 use crate::cmd::ValueType;
 
@@ -23,21 +23,24 @@ impl Choice for &'static str {
     }
 }
 
-const ROWS_PLACEHOLDER: u16 = 5;
-
 pub struct Readline<'s> {
     expect_input: Option<ValueType>,
     prefix: String,
     stdout: &'s mut dyn Write,
+    size: (u16, u16),
+    help: Option<String>,
 }
 
 impl<'s> Readline<'s> {
-    pub fn new(stdout: &'s mut dyn Write) -> Self {
-        Self {
+    // TODO: we should not return a Result here!
+    pub fn new(stdout: &'s mut dyn Write) -> Result<Self> {
+        Ok(Self {
             expect_input: None,
             prefix: "$".into(),
             stdout,
-        }
+            size: terminal_size()?,
+            help: None,
+        })
     }
 
     pub fn prefix(mut self, value: impl Into<String>) -> Self {
@@ -47,6 +50,11 @@ impl<'s> Readline<'s> {
 
     pub fn expect(mut self, expect_type: ValueType) -> Self {
         self.expect_input = Some(expect_type);
+        self
+    }
+
+    pub fn help(mut self, value: impl Into<String>) -> Self {
+        self.help = Some(value.into());
         self
     }
 
@@ -104,19 +112,19 @@ impl<'s> Readline<'s> {
     {
         let mut input = String::new();
         let mut selected: usize = 0;
-        let mut i = 0;
 
         loop {
-            if i > 0 {
-                write!(self.stdout, "{}\r", cursor::Up(ROWS_PLACEHOLDER))?;
-            }
-            i += 1;
+            write!(self.stdout, "{}\r", clear::All)?;
 
             let choices = get_choices(&input);
             if choices.len() <= selected {
                 selected = choices.len().max(1) - 1;
             }
-            render_choices(&mut self.stdout, &choices, selected)?;
+            render_choices(&mut self.stdout, &choices, selected, self.size)?;
+
+            if let Some(ref help) = self.help {
+                write!(self.stdout, "\n{}\r\n", help)?;
+            }
 
             match self.simple(&mut input)? {
                 Key::Char('\n') => {
@@ -139,7 +147,7 @@ impl<'s> Readline<'s> {
             }
         }
 
-        write!(self.stdout, "\n\r")?;
+        write!(self.stdout, "{}\r", clear::All)?;
         self.stdout.flush()?;
 
         let choices = get_choices(&input);
@@ -149,6 +157,11 @@ impl<'s> Readline<'s> {
     /// Read line
     pub fn line(&mut self) -> Result<String> {
         let mut input = String::new();
+
+        if let Some(ref help) = self.help {
+            write!(self.stdout, "\n{}\r\n", help)?;
+        }
+
         loop {
             match self.simple(&mut input)? {
                 Key::Char('\n') if !input.is_empty() => {
@@ -167,12 +180,17 @@ impl<'s> Readline<'s> {
     }
 }
 
-fn render_choices<'a, C>(stdout: &mut dyn Write, choices: &Vec<&C>, selected: usize) -> Result<()>
+fn render_choices<'a, C>(
+    stdout: &mut dyn Write,
+    choices: &Vec<&C>,
+    selected: usize,
+    size: (u16, u16),
+) -> Result<()>
 where
     C: Choice,
 {
     let total = choices.len();
-    let empty_rows = (ROWS_PLACEHOLDER as isize - total as isize).max(0);
+    let empty_rows = (size.1 as isize - total as isize).max(0);
 
     for _ in 0..empty_rows {
         write!(stdout, "{}\n\r", clear::CurrentLine)?;
@@ -180,7 +198,7 @@ where
 
     // TODO: scroll list if selected is not on the screen
 
-    for (i, choice) in choices.iter().enumerate().take(ROWS_PLACEHOLDER as usize) {
+    for (i, choice) in choices.iter().enumerate().take(size.1 as usize) {
         write!(stdout, "{}", clear::CurrentLine)?;
         if i == selected {
             write!(stdout, "> {}", choice.text())?;

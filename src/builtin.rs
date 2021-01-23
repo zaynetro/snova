@@ -4,7 +4,7 @@ pub fn all() -> Vec<Command> {
     vec![
         Command {
             template: "grep [OPTIONS] PATTERN PATH".into(),
-            description: "Find lines in a file".into(),
+            description: "Find lines in a file (grep)".into(),
             groups: vec![
                 CmdGroup {
                     name: "PATTERN".into(),
@@ -31,7 +31,7 @@ pub fn all() -> Vec<Command> {
                             template: "-A _NUM_".into(),
                             description: "Print _NUM_ lines after the matched line".into(),
                             expect: Some(FlagExpectation {
-                                build: Box::new(|num| format!("-A {}", num)),
+                                build: Box::new(|num| format!("-A{}", num)),
                                 value_type: ValueType::Number,
                             }),
                         },
@@ -39,7 +39,7 @@ pub fn all() -> Vec<Command> {
                             template: "-B _NUM_".into(),
                             description: "Print _NUM_ lines before the matched line".into(),
                             expect: Some(FlagExpectation {
-                                build: Box::new(|num| format!("-B {}", num)),
+                                build: Box::new(|num| format!("-B{}", num)),
                                 value_type: ValueType::Number,
                             }),
                         },
@@ -68,7 +68,7 @@ pub fn all() -> Vec<Command> {
         },
         Command {
             template: "find PATH EXPRESSION".into(),
-            description: "Find files or directories".into(),
+            description: "Find files or directories (find)".into(),
             groups: vec![
                 CmdGroup {
                     name: "PATH".into(),
@@ -100,7 +100,7 @@ pub fn all() -> Vec<Command> {
         },
         Command {
             template: "git config [OPTIONS] user.email EMAIL".into(),
-            description: "Set git email address".into(),
+            description: "Set git email address (git)".into(),
             groups: vec![
                 CmdGroup {
                     name: "EMAIL".into(),
@@ -128,7 +128,7 @@ pub fn all() -> Vec<Command> {
         },
         Command {
             template: "curl [OPTIONS] URL".into(),
-            description: "Send an HTTP request".into(),
+            description: "Send an HTTP request (curl)".into(),
             groups: vec![
                 CmdGroup {
                     name: "URL".into(),
@@ -147,7 +147,7 @@ pub fn all() -> Vec<Command> {
                         template: "-X _METHOD_".into(),
                         description: "Specify a request method to use".into(),
                         expect: Some(FlagExpectation {
-                            build: Box::new(|method| format!("-X {}", method)),
+                            build: Box::new(|method| format!("-X{}", method)),
                             value_type: ValueType::String,
                         })
                     }, Flag {

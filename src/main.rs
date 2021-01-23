@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::{collections::HashMap, io::stdout};
 
 use anyhow::{anyhow, Context, Result};
@@ -32,7 +33,11 @@ fn build_cmd() -> Result<Option<String>> {
     let commands = builtin::all();
     let mut screen = AlternateScreen::from(stdout().into_raw_mode()?);
 
-    let cmd = view::Readline::new(&mut screen)
+    // TODO: show a list of cmd descriptions and a name of the command
+    // E.g: - Find lines in a file (find)
+    // E.g: - Find files or directories (grep)
+    let cmd = view::Readline::new(&mut screen)?
+        .help("Pick a command:")
         .autocomplete(|input| {
             commands
                 .iter()
@@ -52,14 +57,14 @@ fn build_cmd() -> Result<Option<String>> {
         }
     };
 
-    println!("Command: {}", cmd.template);
+    writeln!(&mut screen, "{}\n", cmd.template)?;
     let mut user_input = HashMap::new();
 
     for group in &cmd.groups {
         match &group.expect {
             GroupValue::Single(expect_type) => {
                 let prefix = format!("{}:", group.name);
-                let value = view::Readline::new(&mut screen)
+                let value = view::Readline::new(&mut screen)?
                     .prefix(&prefix)
                     .expect(expect_type.clone())
                     .line()?;
@@ -68,7 +73,7 @@ fn build_cmd() -> Result<Option<String>> {
                 }
                 user_input.insert(group.name.clone(), value);
                 let result = (cmd.build)(&user_input);
-                println!("Command: {}", result);
+                writeln!(&mut screen, "{}\n", result)?;
             }
             GroupValue::Flags(flags) => {
                 let mut used_flags = vec![];
@@ -76,7 +81,8 @@ fn build_cmd() -> Result<Option<String>> {
                 user_input.insert(group.name.clone(), combined.clone());
 
                 loop {
-                    let flag = view::Readline::new(&mut screen)
+                    let flag = view::Readline::new(&mut screen)?
+                        .help((cmd.build)(&user_input))
                         .autocomplete(|input| {
                             flags
                                 .iter()
@@ -101,8 +107,9 @@ fn build_cmd() -> Result<Option<String>> {
                                 Some(expect) => match expect.value_type {
                                     ValueType::String | ValueType::Path | ValueType::Number => {
                                         let prefix = format!("{}:", flag.template);
-                                        let value = view::Readline::new(&mut screen)
+                                        let value = view::Readline::new(&mut screen)?
                                             .prefix(&prefix)
+                                            .help(&flag.description)
                                             .expect(expect.value_type.clone())
                                             .line()?;
                                         if value.is_empty() {
@@ -134,9 +141,6 @@ fn build_cmd() -> Result<Option<String>> {
                     if flags.len() == used_flags.len() {
                         break;
                     }
-
-                    let result = (cmd.build)(&user_input);
-                    println!("Command: {}", result);
                 }
             }
         }
