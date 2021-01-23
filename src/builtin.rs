@@ -3,8 +3,8 @@ use crate::cmd::*;
 pub fn all() -> Vec<Command> {
     vec![
         Command {
-            template: "grep [OPTIONS] PATTERN PATH".into(),
-            description: "Find lines in a file (grep)".into(),
+            template: "grep [_OPTIONS_] _PATTERN_ _PATH_".into(),
+            description: "Find lines in a file (*grep*)".into(),
             groups: vec![
                 CmdGroup {
                     name: "PATTERN".into(),
@@ -28,7 +28,7 @@ pub fn all() -> Vec<Command> {
                             expect: None,
                         },
                         Flag {
-                            template: "-A _NUM_".into(),
+                            template: "*-A* _NUM_".into(),
                             description: "Print _NUM_ lines after the matched line".into(),
                             expect: Some(FlagExpectation {
                                 build: Box::new(|num| format!("-A{}", num)),
@@ -36,7 +36,7 @@ pub fn all() -> Vec<Command> {
                             }),
                         },
                         Flag {
-                            template: "-B _NUM_".into(),
+                            template: "*-B* _NUM_".into(),
                             description: "Print _NUM_ lines before the matched line".into(),
                             expect: Some(FlagExpectation {
                                 build: Box::new(|num| format!("-B{}", num)),
@@ -56,19 +56,19 @@ pub fn all() -> Vec<Command> {
                     "grep {} {} {}",
                     options
                         .get("OPTIONS")
-                        .unwrap_or(&"OPTIONS".to_string())
+                        .unwrap_or(&"_OPTIONS_".to_string())
                         .trim(),
                     options
                         .get("PATTERN")
-                        .unwrap_or(&"PATTERN".to_string())
+                        .unwrap_or(&"_PATTERN_".to_string())
                         .trim(),
-                    options.get("PATH").unwrap_or(&"PATH".to_string()).trim(),
+                    options.get("PATH").unwrap_or(&"_PATH_".to_string()).trim(),
                 )
             }),
         },
         Command {
-            template: "find PATH EXPRESSION".into(),
-            description: "Find files or directories (find)".into(),
+            template: "find _PATH_ _EXPRESSION_".into(),
+            description: "Find files or directories (*find*)".into(),
             groups: vec![
                 CmdGroup {
                     name: "PATH".into(),
@@ -78,7 +78,7 @@ pub fn all() -> Vec<Command> {
                     name: "EXPRESSION".into(),
                     // TODO: how can we require that at least one flag shoud be selected?
                     expect: GroupValue::Flags(vec![Flag {
-                        template: "-iname _PATTERN_".into(),
+                        template: "*-iname* _PATTERN_".into(),
                         description: "File name pattern".into(),
                         expect: Some(FlagExpectation {
                             build: Box::new(|pattern| format!("-iname {}", pattern)),
@@ -90,17 +90,17 @@ pub fn all() -> Vec<Command> {
             build: Box::new(|options| {
                 format!(
                     "find {} {}",
-                    options.get("PATH").unwrap_or(&"PATH".to_string()).trim(),
+                    options.get("PATH").unwrap_or(&"_PATH_".to_string()).trim(),
                     options
                         .get("EXPRESSION")
-                        .unwrap_or(&"EXPRESSION".to_string())
+                        .unwrap_or(&"_EXPRESSION_".to_string())
                         .trim(),
                 )
             }),
         },
         Command {
-            template: "git config [OPTIONS] user.email EMAIL".into(),
-            description: "Set git email address (git)".into(),
+            template: "git config [_OPTIONS_] user.email _EMAIL_".into(),
+            description: "Set git email address (*git*)".into(),
             groups: vec![
                 CmdGroup {
                     name: "EMAIL".into(),
@@ -118,17 +118,17 @@ pub fn all() -> Vec<Command> {
             build: Box::new(|options| {
                 format!(
                     "git config {} user.email {}",
-                    options.get("OPTIONS").unwrap_or(&"OPTIONS".to_string()).trim(),
+                    options.get("OPTIONS").unwrap_or(&"_OPTIONS_".to_string()).trim(),
                     options
                         .get("EMAIL")
-                        .unwrap_or(&"EMAIL".to_string())
+                        .unwrap_or(&"_EMAIL_".to_string())
                         .trim(),
                 )
             }),
         },
         Command {
-            template: "curl [OPTIONS] URL".into(),
-            description: "Send an HTTP request (curl)".into(),
+            template: "curl [_OPTIONS_] _URL_".into(),
+            description: "Send an HTTP request (*curl*)".into(),
             groups: vec![
                 CmdGroup {
                     name: "URL".into(),
@@ -137,14 +137,14 @@ pub fn all() -> Vec<Command> {
                 CmdGroup {
                     name: "OPTIONS".into(),
                     expect: GroupValue::Flags(vec![Flag {
-                        template: "-H _VALUE_".into(),
+                        template: "*-H* _VALUE_".into(),
                         description: "Include header (e.g -H \"Content-Type: application/json\")".into(),
                         expect: Some(FlagExpectation {
                             build: Box::new(|value| format!("-H {}", value)),
                             value_type: ValueType::String,
                         })
                     }, Flag {
-                        template: "-X _METHOD_".into(),
+                        template: "*-X* _METHOD_".into(),
                         description: "Specify a request method to use".into(),
                         expect: Some(FlagExpectation {
                             build: Box::new(|method| format!("-X{}", method)),
@@ -155,7 +155,7 @@ pub fn all() -> Vec<Command> {
                         description: "Verbose logging".into(),
                         expect: None,
                     }, Flag {
-                        template: "-d _DATA_".into(),
+                        template: "*-d* _DATA_".into(),
                         description: "Specify request payload (use '@myfile.txt' to read data from file)".into(),
                         expect: Some(FlagExpectation {
                             build: Box::new(|data| format!("-d {}", data)),
@@ -171,10 +171,10 @@ pub fn all() -> Vec<Command> {
             build: Box::new(|options| {
                 format!(
                     "curl {} {}",
-                    options.get("OPTIONS").unwrap_or(&"OPTIONS".to_string()).trim(),
+                    options.get("OPTIONS").unwrap_or(&"_OPTIONS_".to_string()).trim(),
                     options
                         .get("URL")
-                        .unwrap_or(&"URL".to_string())
+                        .unwrap_or(&"_URL_".to_string())
                         .trim(),
                 )
             }),

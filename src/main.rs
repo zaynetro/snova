@@ -11,7 +11,7 @@ mod cmd;
 mod view;
 
 use cmd::*;
-use view::Choice;
+use view::{Choice, fmt_text};
 
 fn main() {
     match build_cmd() {
@@ -57,7 +57,7 @@ fn build_cmd() -> Result<Option<String>> {
         }
     };
 
-    writeln!(&mut screen, "{}\n", cmd.template)?;
+    writeln!(&mut screen, "{}\n", fmt_text(&cmd.template))?;
     let mut user_input = HashMap::new();
 
     for group in &cmd.groups {
@@ -73,7 +73,7 @@ fn build_cmd() -> Result<Option<String>> {
                 }
                 user_input.insert(group.name.clone(), value);
                 let result = (cmd.build)(&user_input);
-                writeln!(&mut screen, "{}\n", result)?;
+                writeln!(&mut screen, "\n{}\n", fmt_text(result))?;
             }
             GroupValue::Flags(flags) => {
                 let mut used_flags = vec![];
@@ -151,17 +151,13 @@ fn build_cmd() -> Result<Option<String>> {
 }
 
 impl Choice for Command {
-    type Text = String;
-
-    fn text(&self) -> &Self::Text {
+    fn text(&self) -> &str {
         &self.description
     }
 }
 
 impl Choice for Flag {
-    type Text = String;
-
-    fn text(&self) -> &Self::Text {
+    fn text(&self) -> &str {
         &self.description
     }
 }

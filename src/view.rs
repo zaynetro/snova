@@ -1,24 +1,19 @@
 use anyhow::{anyhow, Result};
 use std::fmt::Display;
 use std::io::{stdin, Write};
-use termion::clear;
 use termion::input::TermRead;
+use termion::{clear, style};
 use termion::{event::Key, terminal_size};
 
 use crate::cmd::ValueType;
 
 pub trait Choice {
-    /// User visible text
-    type Text: Display;
-
     /// Get a reference to the text
-    fn text(&self) -> &Self::Text;
+    fn text(&self) -> &str;
 }
 
 impl Choice for &'static str {
-    type Text = &'static str;
-
-    fn text(&self) -> &Self::Text {
+    fn text(&self) -> &str {
         self
     }
 }
@@ -63,7 +58,7 @@ impl<'s> Readline<'s> {
         let stdin = stdin();
 
         write!(self.stdout, "{}", clear::CurrentLine)?;
-        write!(self.stdout, "\r{} {}", self.prefix, input)?;
+        write!(self.stdout, "\r{} {}", fmt_text(&self.prefix), input)?;
         self.stdout.flush()?;
 
         for key in stdin.keys() {
@@ -72,7 +67,7 @@ impl<'s> Readline<'s> {
             match key {
                 Key::Ctrl('c') => {
                     write!(self.stdout, "{}", clear::CurrentLine)?;
-                    write!(self.stdout, "\r{} {}\n\r", self.prefix, input)?;
+                    write!(self.stdout, "\r{} {}\n\r", fmt_text(&self.prefix), input)?;
                     self.stdout.flush()?;
                     return Err(anyhow!("Terminated"));
                 }
@@ -93,7 +88,7 @@ impl<'s> Readline<'s> {
             }
 
             write!(self.stdout, "{}", clear::CurrentLine)?;
-            write!(self.stdout, "\r{} {}", self.prefix, input)?;
+            write!(self.stdout, "\r{} {}", fmt_text(&self.prefix), input)?;
             self.stdout.flush()?;
 
             return Ok(key);
@@ -123,7 +118,7 @@ impl<'s> Readline<'s> {
             render_choices(&mut self.stdout, &choices, selected, self.size)?;
 
             if let Some(ref help) = self.help {
-                write!(self.stdout, "\n{}\r\n", help)?;
+                write!(self.stdout, "\n{}\r\n", fmt_text(help))?;
             }
 
             match self.simple(&mut input)? {
@@ -159,7 +154,7 @@ impl<'s> Readline<'s> {
         let mut input = String::new();
 
         if let Some(ref help) = self.help {
-            write!(self.stdout, "\n{}\r\n", help)?;
+            write!(self.stdout, "\n{}\r\n", fmt_text(help))?;
         }
 
         loop {
@@ -201,12 +196,71 @@ where
     for (i, choice) in choices.iter().enumerate().take(size.1 as usize) {
         write!(stdout, "{}", clear::CurrentLine)?;
         if i == selected {
-            write!(stdout, "> {}", choice.text())?;
+            write!(stdout, "> {}", fmt_text(choice.text()))?;
         } else {
-            write!(stdout, "  {}", choice.text())?;
+            write!(stdout, "  {}", fmt_text(choice.text()))?;
         }
         write!(stdout, "\n\r")?;
     }
 
     Ok(())
+}
+
+#[derive(Default)]
+struct FmtState {
+    /// Bold text has started
+    bold: bool,
+    /// Underline text has started
+    underline: bool,
+}
+
+pub fn fmt_text(text: impl AsRef<str>) -> impl Display {
+    let text = text.as_ref();
+    let mut result = String::new();
+    let mut state = FmtState::default();
+
+    for c in text.chars() {
+        match c {
+            '*' => {
+                if state.bold {
+                    // End bold
+                    // Somehow NoBold doesn't work properly hence using Reset for now
+                    // result.push_str(style::NoBold.as_ref());
+                    result.push_str(style::Reset.as_ref());
+                } else {
+                    // Start bold
+                    result.push_str(style::Bold.as_ref());
+                }
+
+                state.bold = !state.bold;
+            }
+            '_' => {
+                if state.underline {
+                    // End underline
+                    result.push_str(style::NoUnderline.as_ref());
+                } else {
+                    // Start underline
+                    result.push_str(style::Underline.as_ref());
+                }
+
+                state.underline = !state.underline;
+            }
+            _ => {
+                result.push(c);
+            }
+        }
+    }
+
+    // Clean styles if not closed properly
+    if state.bold {
+        // Somehow NoBold doesn't work properly hence using Reset for now
+        // result.push_str(style::NoBold.as_ref());
+        result.push_str(style::Reset.as_ref());
+    }
+
+    if state.underline {
+        result.push_str(style::NoUnderline.as_ref());
+    }
+
+    result
 }
