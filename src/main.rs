@@ -6,12 +6,10 @@ use termion::{raw::IntoRawMode, screen::AlternateScreen};
 
 mod builtin;
 mod cmd;
-// TODO: do we still need it?
-// mod dynfmt;
 mod view;
 
 use cmd::*;
-use view::{Choice, fmt_text};
+use view::{fmt_text, Choice};
 
 fn main() {
     match build_cmd() {
