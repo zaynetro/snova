@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Result, Context};
 use std::fmt::Display;
 use std::io::{stdin, Write};
 use termion::input::TermRead;
@@ -22,20 +22,17 @@ pub struct Readline<'s> {
     expect_input: Option<ValueType>,
     prefix: String,
     stdout: &'s mut dyn Write,
-    size: (u16, u16),
     help: Option<String>,
 }
 
 impl<'s> Readline<'s> {
-    // TODO: we should not return a Result here!
-    pub fn new(stdout: &'s mut dyn Write) -> Result<Self> {
-        Ok(Self {
+    pub fn new(stdout: &'s mut dyn Write) -> Self {
+        Self {
             expect_input: None,
             prefix: "$".into(),
             stdout,
-            size: terminal_size()?,
             help: None,
-        })
+        }
     }
 
     pub fn prefix(mut self, value: impl Into<String>) -> Self {
@@ -115,7 +112,7 @@ impl<'s> Readline<'s> {
             if choices.len() <= selected {
                 selected = choices.len().max(1) - 1;
             }
-            render_choices(&mut self.stdout, &choices, selected, self.size)?;
+            render_choices(&mut self.stdout, &choices, selected)?;
 
             if let Some(ref help) = self.help {
                 write!(self.stdout, "\n{}\r\n", fmt_text(help))?;
@@ -179,12 +176,12 @@ fn render_choices<'a, C>(
     stdout: &mut dyn Write,
     choices: &Vec<&C>,
     selected: usize,
-    size: (u16, u16),
 ) -> Result<()>
 where
     C: Choice,
 {
     let total = choices.len();
+    let size = terminal_size().context("Terminal size")?;
     let empty_rows = (size.1 as isize - total as isize).max(0);
 
     for _ in 0..empty_rows {

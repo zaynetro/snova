@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use anyhow::{Result, anyhow};
+
 pub struct Command {
     pub template: String,
     pub description: String,
@@ -10,6 +12,7 @@ pub struct Command {
 pub struct CmdGroup {
     pub name: String,
     pub expect: GroupValue,
+    pub optional: bool,
 }
 
 pub enum GroupValue {
@@ -21,6 +24,8 @@ pub struct Flag {
     pub template: String,
     pub description: String,
     pub expect: Option<FlagExpectation>,
+    /// Allow specifing this flag multiple times
+    pub multiple: bool,
 }
 
 impl PartialEq for Flag {
@@ -47,6 +52,15 @@ impl ValueType {
         match self {
             ValueType::String | ValueType::Path => true,
             ValueType::Number => c.is_digit(10),
+        }
+    }
+
+    pub fn parse(v: &str) -> Result<ValueType> {
+        match v {
+            "string" => Ok(ValueType::String),
+            "path" => Ok(ValueType::Path),
+            "number" => Ok(ValueType::Number),
+            _ => Err(anyhow!("Unknown value type '{}'", v))
         }
     }
 }

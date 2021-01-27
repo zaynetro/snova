@@ -1,0 +1,47 @@
+# Builtin commands
+
+[[commands]]
+
+template = "grep [_OPTIONS_] _PATTERN_ _PATH_"
+description = "Find lines in a file (*grep*)"
+
+groups.PATTERN.expect = "string"
+groups.PATH.expect = "path"
+groups.OPTIONS.flags = [
+  { template = "-i", description = "Case insensitive matching" },
+  { template = "-v", description = "Invert match (return non-matching lines)" },
+  { template = "*-A* _NUM_", description = "Print _NUM_ lines after the matched line", expect = "number" },
+  { template = "*-B* _NUM_", description = "Print _NUM_ lines before the matched line", expect = "number" },
+  { template = "-r", description = "Search files recursively" },
+]
+
+[[commands]]
+template = "find _PATH_ _EXPRESSION_"
+description = "Find files or directories (*find*)"
+
+groups.PATH.expect = "path"
+groups.EXPRESSION.flags = [
+  { template = "*-iname* _PATTERN_", description = "File name pattern", expect = "string" },
+]
+
+[[commands]]
+template = "git config [_OPTIONS_] user.email _EMAIL_"
+description = "Set git email address (*git*)"
+
+groups.EMAIL.expect = "path"
+groups.OPTIONS.flags = [
+  { template = "--global", description = " Write to global *~/.gitconfig* file rather than the repository *.git/config*" },
+]
+
+[[commands]]
+template = "curl [_OPTIONS_] _URL_"
+description = "Send an HTTP request (*curl*)"
+
+groups.URL.expect = "string"
+groups.OPTIONS.flags = [
+  { template = "*-H* _VALUE_", description = "Include header (e.g -H \"Content-Type: application/json\")", expect = "string", multiple = true },
+  { template = "*-X* _METHOD_", description = "Specify a request method to use", expect = "string" },
+  { template = "-v", description = "Verbose logging" },
+  { template = "*-d* _DATA_", description = "Specify request payload (use '@myfile.txt' to read data from file)", expect = "string" },
+  { template = "-L", description = "Follow redirects" },
+]

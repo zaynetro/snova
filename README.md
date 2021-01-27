@@ -13,9 +13,10 @@ See it in action: [asciicast](https://asciinema.org/a/cCcRDmN1NXuoM8bL4IGVbEXlh)
   * [x] `curl`
 * [x] Use alternative screen for building a command
 * [x] Improve UI flow
-* [ ] Autocomplete and verify path value type
-* [ ] Allow defining commands in a toml file
 * [x] Use bold and underline text for better contrast
+
+* [ ] Allow defining commands in a toml file
+* [ ] Autocomplete and verify path value type
 * [ ] Support enum value type (e.g curl methods GET/POST/..)
 * [ ] Pipe commands
 * [ ] Killer feature: execute the same command over SSH

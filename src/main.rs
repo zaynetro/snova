@@ -4,8 +4,8 @@ use std::{collections::HashMap, io::stdout};
 use anyhow::{anyhow, Context, Result};
 use termion::{raw::IntoRawMode, screen::AlternateScreen};
 
-mod builtin;
 mod cmd;
+mod parser;
 mod view;
 
 use cmd::*;
@@ -28,13 +28,10 @@ fn main() {
 
 /// Build command and return the result
 fn build_cmd() -> Result<Option<String>> {
-    let commands = builtin::all();
+    let commands = parser::builtin()?;
     let mut screen = AlternateScreen::from(stdout().into_raw_mode()?);
 
-    // TODO: show a list of cmd descriptions and a name of the command
-    // E.g: - Find lines in a file (find)
-    // E.g: - Find files or directories (grep)
-    let cmd = view::Readline::new(&mut screen)?
+    let cmd = view::Readline::new(&mut screen)
         .help("Pick a command:")
         .autocomplete(|input| {
             commands
@@ -62,7 +59,7 @@ fn build_cmd() -> Result<Option<String>> {
         match &group.expect {
             GroupValue::Single(expect_type) => {
                 let prefix = format!("{}:", group.name);
-                let value = view::Readline::new(&mut screen)?
+                let value = view::Readline::new(&mut screen)
                     .prefix(&prefix)
                     .expect(expect_type.clone())
                     .line()?;
@@ -75,11 +72,11 @@ fn build_cmd() -> Result<Option<String>> {
             }
             GroupValue::Flags(flags) => {
                 let mut used_flags = vec![];
-                let mut combined = String::new();
-                user_input.insert(group.name.clone(), combined.clone());
+                let mut combined = vec![];
+                user_input.insert(group.name.clone(), combined.join(" "));
 
                 loop {
-                    let flag = view::Readline::new(&mut screen)?
+                    let flag = view::Readline::new(&mut screen)
                         .help((cmd.build)(&user_input))
                         .autocomplete(|input| {
                             flags
@@ -97,15 +94,16 @@ fn build_cmd() -> Result<Option<String>> {
                     match flag {
                         Some(flag) => {
                             // Remember that this flag was asked
-                            // TODO: allow setting multiple same flags (e.g headers in curl)
-                            used_flags.push(flag);
+                            if !flag.multiple {
+                                used_flags.push(flag);
+                            }
 
                             match &flag.expect {
                                 // Ask for input
                                 Some(expect) => match expect.value_type {
                                     ValueType::String | ValueType::Path | ValueType::Number => {
                                         let prefix = format!("{}:", flag.template);
-                                        let value = view::Readline::new(&mut screen)?
+                                        let value = view::Readline::new(&mut screen)
                                             .prefix(&prefix)
                                             .help(&flag.description)
                                             .expect(expect.value_type.clone())
@@ -117,14 +115,12 @@ fn build_cmd() -> Result<Option<String>> {
                                             ));
                                         }
                                         let result = (expect.build)(&value);
-                                        combined.push_str(&result);
-                                        combined.push(' ');
+                                        combined.push(result.clone());
                                     }
                                 },
                                 // Save flag
                                 None => {
-                                    combined.push_str(&flag.template);
-                                    combined.push(' ');
+                                    combined.push(flag.template.clone());
                                 }
                             }
                         }
@@ -134,7 +130,7 @@ fn build_cmd() -> Result<Option<String>> {
                         }
                     }
 
-                    user_input.insert(group.name.clone(), combined.clone());
+                    user_input.insert(group.name.clone(), combined.join(" "));
 
                     if flags.len() == used_flags.len() {
                         break;
