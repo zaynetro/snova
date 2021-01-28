@@ -15,9 +15,12 @@ See it in action: [asciicast](https://asciinema.org/a/cCcRDmN1NXuoM8bL4IGVbEXlh)
 * [x] Improve UI flow
 * [x] Use bold and underline text for better contrast
 
-* [ ] Allow defining commands in a toml file
+* [x] Allow defining commands in a toml file
+* [ ] Read user commands from (`$HOME/.config/snova/commands.toml`)
 * [ ] Autocomplete and verify path value type
 * [ ] Support enum value type (e.g curl methods GET/POST/..)
+* [ ] Support specifying value options 
+    * If a field has free text you can suggest some commonly used values
 * [ ] Pipe commands
 * [ ] Killer feature: execute the same command over SSH
 

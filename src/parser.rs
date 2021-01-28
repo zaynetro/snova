@@ -158,7 +158,7 @@ pub fn parse_defs(mut defs: CommandsDef) -> Result<Vec<Command>> {
                 }
             }
 
-            parts.join(" ")
+            parts.join("")
         };
 
         commands.push(Command {
@@ -199,8 +199,7 @@ fn prepare_flags(mut defs: VecDeque<FlagDef>) -> Result<Vec<Flag>> {
                             GroupNameType::Fixed => &g.name,
                             GroupNameType::UserInput { .. } => user_input,
                         })
-                        .collect::<Vec<_>>()
-                        .join(" ")
+                        .collect::<String>()
                 }),
             }),
             None => None,
@@ -234,29 +233,15 @@ enum GroupNameType {
 }
 
 /// Read command template and return a list of group names.
-/// We basically split template into words and process each word.
 fn parse_template_groups(template: &str) -> Result<Vec<GroupName>> {
     let mut groups = vec![];
     let mut state = GroupNameType::Fixed;
     let mut optional_started = false;
     let mut current_group = String::new();
+    let mut prev_char = ' ';
 
     for c in template.chars() {
         match c {
-            ' ' => {
-                // End a word (terminates a group)
-                if !matches!(state, GroupNameType::Fixed) {
-                    return Err(anyhow!("Group '{}' is not closed", current_group));
-                }
-
-                if !current_group.is_empty() {
-                    groups.push(GroupName {
-                        name: current_group,
-                        group_type: state.clone(),
-                    });
-                    current_group = String::new();
-                }
-            }
             '*' => {
                 // Strip bold
             }
@@ -267,11 +252,11 @@ fn parse_template_groups(template: &str) -> Result<Vec<GroupName>> {
                 }
                 optional_started = false;
             }
-            '_' => match state {
+            '_' if prev_char != '\\' => match state {
                 GroupNameType::UserInput { .. } => {
                     // Close the group
                     groups.push(GroupName {
-                        name: current_group,
+                        name: current_group.replace("\\_", "_"),
                         group_type: state,
                     });
                     current_group = String::new();
@@ -282,7 +267,7 @@ fn parse_template_groups(template: &str) -> Result<Vec<GroupName>> {
                     if !current_group.is_empty() {
                         // If there is some input already then store it in a separate group
                         groups.push(GroupName {
-                            name: current_group,
+                            name: current_group.replace("\\_", "_"),
                             group_type: state.clone(),
                         });
                         current_group = String::new();
@@ -295,6 +280,7 @@ fn parse_template_groups(template: &str) -> Result<Vec<GroupName>> {
             },
             c => current_group.push(c),
         }
+        prev_char = c;
     }
 
     if !matches!(state, GroupNameType::Fixed) {
@@ -303,7 +289,7 @@ fn parse_template_groups(template: &str) -> Result<Vec<GroupName>> {
 
     if !current_group.is_empty() {
         groups.push(GroupName {
-            name: current_group,
+            name: current_group.replace("\\_", "_"),
             group_type: state,
         });
     }
@@ -323,7 +309,7 @@ mod tests {
         assert_eq!(
             vec![
                 GroupName {
-                    name: "grep".into(),
+                    name: "grep ".into(),
                     group_type: GroupNameType::Fixed,
                 },
                 GroupName {
@@ -331,8 +317,16 @@ mod tests {
                     group_type: GroupNameType::UserInput { optional: true },
                 },
                 GroupName {
+                    name: " ".into(),
+                    group_type: GroupNameType::Fixed,
+                },
+                GroupName {
                     name: "PATTERN".into(),
                     group_type: GroupNameType::UserInput { optional: false },
+                },
+                GroupName {
+                    name: " ".into(),
+                    group_type: GroupNameType::Fixed,
                 },
                 GroupName {
                     name: "PATH".into(),
@@ -351,11 +345,7 @@ mod tests {
         assert_eq!(
             vec![
                 GroupName {
-                    name: "git".into(),
-                    group_type: GroupNameType::Fixed,
-                },
-                GroupName {
-                    name: "config".into(),
+                    name: "git config ".into(),
                     group_type: GroupNameType::Fixed,
                 },
                 GroupName {
@@ -363,7 +353,7 @@ mod tests {
                     group_type: GroupNameType::UserInput { optional: true },
                 },
                 GroupName {
-                    name: "user.email".into(),
+                    name: " user.email ".into(),
                     group_type: GroupNameType::Fixed,
                 },
                 GroupName {
@@ -389,6 +379,22 @@ mod tests {
                 GroupName {
                     name: "NUM".into(),
                     group_type: GroupNameType::UserInput { optional: false },
+                },
+            ],
+            names.ok().unwrap()
+        );
+    }
+
+    #[test]
+    fn parse_template_groups_curl() {
+        let template = "curl -XPOST -d 'client\\_id=key&client\\_secret=secret' http://localhost?grant=client\\_credentials";
+        let names = parse_template_groups(template);
+        assert!(names.is_ok(), "Parse failed: {:?}", names.err());
+        assert_eq!(
+            vec![
+                GroupName {
+                    name: "curl -XPOST -d 'client_id=key&client_secret=secret' http://localhost?grant=client_credentials".into(),
+                    group_type: GroupNameType::Fixed,
                 },
             ],
             names.ok().unwrap()
@@ -463,7 +469,46 @@ mod tests {
         user_input.insert("PATH".to_string(), "./one".to_string());
 
         let result = (cmd.build)(&user_input);
-        assert_eq!("grep ./one", result);
+        assert_eq!("grep  ./one", result);
+    }
+
+    #[test]
+    fn parse_defs_inline_group() {
+        let mut groups = HashMap::new();
+        groups.insert(
+            "VALUE".to_string(),
+            GroupDef {
+                expect: Some("string".into()),
+                flags: None,
+            },
+        );
+
+        let defs = CommandsDef {
+            commands: vec![CommandDef {
+                template: "curl http://localhost?one=_VALUE_".into(),
+                description: "Get something".into(),
+                groups,
+            }]
+            .into(),
+        };
+
+        let commands = parse_defs(defs);
+        assert!(
+            commands.is_ok(),
+            "Parse defs is ok (err={:?})",
+            commands.err()
+        );
+
+        let commands = commands.ok().unwrap();
+        assert_eq!(1, commands.len());
+        let cmd = &commands[0];
+        assert_eq!(1, cmd.groups.len(), "Groups len");
+
+        let mut user_input = HashMap::new();
+        user_input.insert("VALUE".to_string(), "value".to_string());
+
+        let result = (cmd.build)(&user_input);
+        assert_eq!("curl http://localhost?one=value", result);
     }
 
     #[test]
