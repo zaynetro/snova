@@ -41,10 +41,38 @@ struct FlagDef {
     multiple: bool,
 }
 
+/// Read all commands
+pub fn read_all() -> Result<Vec<Command>> {
+    let mut all = builtin()?;
+    let mut user = user_commands()?;
+    all.append(&mut user);
+    Ok(all)
+}
+
+/// Read user commands
+fn user_commands() -> Result<Vec<Command>> {
+    if let Some(mut config_dir) = dirs::config_dir() {
+        config_dir.push("snova");
+        if config_dir.is_dir() {
+            let commands_file = config_dir.join("commands.toml");
+            if commands_file.is_file() {
+                // Try reading user commands file
+                let data = std::fs::read_to_string(&commands_file)
+                    .context(format!("Read {}", commands_file.display()))?;
+                let defs: CommandsDef =
+                    toml::de::from_str(&data).context("Parse user commands toml")?;
+                return parse_defs(defs)
+            }
+        }
+    }
+
+    Ok(vec![])
+}
+
 /// Read builtin commands
-pub fn builtin() -> Result<Vec<Command>> {
+fn builtin() -> Result<Vec<Command>> {
     let defs: CommandsDef =
-        toml::de::from_str(BUILTIN_DEF).context("parse builtin commands toml")?;
+        toml::de::from_str(BUILTIN_DEF).context("Parse builtin commands toml")?;
     parse_defs(defs)
 }
 

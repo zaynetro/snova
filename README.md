@@ -16,7 +16,7 @@ See it in action: [asciicast](https://asciinema.org/a/cCcRDmN1NXuoM8bL4IGVbEXlh)
 * [x] Use bold and underline text for better contrast
 
 * [x] Allow defining commands in a toml file
-* [ ] Read user commands from (`$HOME/.config/snova/commands.toml`)
+* [x] Read user commands from (`$HOME/.config/snova/commands.toml`)
 * [ ] Autocomplete and verify path value type
 * [ ] Support enum value type (e.g curl methods GET/POST/..)
 * [ ] Support specifying value options 

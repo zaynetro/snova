@@ -28,7 +28,7 @@ fn main() {
 
 /// Build command and return the result
 fn build_cmd() -> Result<Option<String>> {
-    let commands = parser::builtin()?;
+    let commands = parser::read_all()?;
     let mut screen = AlternateScreen::from(stdout().into_raw_mode()?);
 
     let cmd = view::Readline::new(&mut screen)
