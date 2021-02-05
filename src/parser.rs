@@ -39,6 +39,7 @@ struct FlagDef {
     expect: Option<ValueTypeDef>,
     #[serde(default)]
     multiple: bool,
+    suggest: Option<Vec<String>>,
 }
 
 /// Read all commands
@@ -238,6 +239,7 @@ fn prepare_flags(mut defs: VecDeque<FlagDef>) -> Result<Vec<Flag>> {
             description: flag_def.description,
             expect,
             multiple: flag_def.multiple,
+            suggest: flag_def.suggest,
         });
     }
 
@@ -458,12 +460,14 @@ mod tests {
                         description: "Case insensitive matching".into(),
                         expect: None,
                         multiple: false,
+                        suggest: None,
                     },
                     FlagDef {
                         template: "*-A*_NUM_".into(),
                         description: "Print _NUM_ lines after the matched line".into(),
                         expect: Some("number".into()),
                         multiple: false,
+                        suggest: None,
                     },
                 ])),
             },

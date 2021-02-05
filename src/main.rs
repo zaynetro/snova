@@ -2,7 +2,7 @@ use std::io::Write;
 use std::{collections::HashMap, io::stdout};
 
 use anyhow::{anyhow, Context, Result};
-use termion::{raw::IntoRawMode, screen::AlternateScreen};
+use termion::raw::IntoRawMode;
 
 mod cmd;
 mod parser;
@@ -13,7 +13,6 @@ use view::{fmt_text, Choice};
 
 fn main() {
     match build_cmd() {
-        // match play() {
         Ok(Some(cmd)) => {
             println!("{}", cmd);
         }
@@ -29,11 +28,11 @@ fn main() {
 /// Build command and return the result
 fn build_cmd() -> Result<Option<String>> {
     let commands = parser::read_all()?;
-    let mut screen = AlternateScreen::from(stdout().into_raw_mode()?);
+    let mut stdout = stdout().into_raw_mode()?;
 
-    let cmd = view::Readline::new(&mut screen)
+    let cmd = view::Readline::new(&mut stdout)
         .help("Pick a command:")
-        .autocomplete(|input| {
+        .choice(|input| {
             commands
                 .iter()
                 .filter(|cmd| {
@@ -52,14 +51,14 @@ fn build_cmd() -> Result<Option<String>> {
         }
     };
 
-    writeln!(&mut screen, "{}\n", fmt_text(&cmd.template))?;
+    writeln!(&mut stdout, "Command: {}\r", fmt_text(&cmd.template))?;
     let mut user_input = HashMap::new();
 
     for group in &cmd.groups {
         match &group.expect {
             GroupValue::Single(expect_type) => {
                 let prefix = format!("{}:", group.name);
-                let value = view::Readline::new(&mut screen)
+                let value = view::Readline::new(&mut stdout)
                     .prefix(&prefix)
                     .expect(expect_type.clone())
                     .line()?;
@@ -68,7 +67,7 @@ fn build_cmd() -> Result<Option<String>> {
                 }
                 user_input.insert(group.name.clone(), value);
                 let result = (cmd.build)(&user_input);
-                writeln!(&mut screen, "\n{}\n", fmt_text(result))?;
+                writeln!(&mut stdout, "{}\r", result)?;
             }
             GroupValue::Flags(flags) => {
                 let mut used_flags = vec![];
@@ -76,9 +75,9 @@ fn build_cmd() -> Result<Option<String>> {
                 user_input.insert(group.name.clone(), combined.join(" "));
 
                 loop {
-                    let flag = view::Readline::new(&mut screen)
+                    let flag = view::Readline::new(&mut stdout)
                         .help((cmd.build)(&user_input))
-                        .autocomplete(|input| {
+                        .choice(|input| {
                             flags
                                 .iter()
                                 .filter(|flag| !used_flags.contains(flag))
@@ -103,7 +102,7 @@ fn build_cmd() -> Result<Option<String>> {
                                 Some(expect) => match expect.value_type {
                                     ValueType::String | ValueType::Path | ValueType::Number => {
                                         let prefix = format!("{}:", flag.template);
-                                        let value = view::Readline::new(&mut screen)
+                                        let value = view::Readline::new(&mut stdout)
                                             .prefix(&prefix)
                                             .help(&flag.description)
                                             .expect(expect.value_type.clone())

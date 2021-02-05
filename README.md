@@ -21,6 +21,7 @@ See it in action: [asciicast](https://asciinema.org/a/cCcRDmN1NXuoM8bL4IGVbEXlh)
 * [ ] Support enum value type (e.g curl methods GET/POST/..)
 * [ ] Support specifying value options 
     * If a field has free text you can suggest some commonly used values
+* [ ] Set up clippy
 * [ ] Pipe commands
 * [ ] Killer feature: execute the same command over SSH
 

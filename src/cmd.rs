@@ -26,6 +26,7 @@ pub struct Flag {
     pub expect: Option<FlagExpectation>,
     /// Allow specifing this flag multiple times
     pub multiple: bool,
+    pub suggest: Option<Vec<String>>,
 }
 
 impl PartialEq for Flag {
