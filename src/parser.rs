@@ -62,7 +62,7 @@ fn user_commands() -> Result<Vec<Command>> {
                     .context(format!("Read {}", commands_file.display()))?;
                 let defs: CommandsDef =
                     toml::de::from_str(&data).context("Parse user commands toml")?;
-                return parse_defs(defs)
+                return parse_defs(defs);
             }
         }
     }
