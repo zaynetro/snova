@@ -48,11 +48,11 @@ Snova will try to find that file and include all commands from it.
 * [x] Support enum value type (e.g curl methods GET/POST/..)
 * [x] Support specifying value options 
     * If a field has free text you can suggest some commonly used values
+* [x] Set up clippy
 
 * [ ] Better templating syntax. Atm it breaks frequently.
 * [ ] Autocomplete and verify path value type
 * [ ] Which other commands do I use?
-* [ ] Set up clippy
 * [ ] Pipe commands
 * [ ] Killer feature: execute the same command over SSH
 
