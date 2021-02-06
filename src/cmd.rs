@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 pub struct Command {
     pub template: String,
@@ -60,7 +60,7 @@ impl ValueType {
             "string" => Ok(ValueType::String),
             "path" => Ok(ValueType::Path),
             "number" => Ok(ValueType::Number),
-            _ => Err(anyhow!("Unknown value type '{}'", v))
+            _ => Err(anyhow!("Unknown value type '{}'", v)),
         }
     }
 }
