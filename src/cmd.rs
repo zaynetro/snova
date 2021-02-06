@@ -41,7 +41,6 @@ pub struct FlagExpectation {
 }
 
 #[derive(Debug, Clone)]
-// TODO: support enum value type (e.g request method in curl: GET/POST/...)
 pub enum ValueType {
     String,
     Path,

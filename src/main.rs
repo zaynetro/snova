@@ -9,7 +9,7 @@ mod parser;
 mod view;
 
 use cmd::*;
-use view::{fmt_text, Choice};
+use view::{fmt_text, Choice, FixedComplete};
 
 fn main() {
     match build_cmd() {
@@ -32,16 +32,7 @@ fn build_cmd() -> Result<Option<String>> {
 
     let cmd = view::Readline::new(&mut stdout)
         .help("Pick a command:")
-        .choice(|input| {
-            commands
-                .iter()
-                .filter(|cmd| {
-                    cmd.description
-                        .to_lowercase()
-                        .contains(&input.to_lowercase())
-                })
-                .collect()
-        })
+        .choice(FixedComplete::new(&commands))
         .context("Pick command")?;
 
     let cmd = match cmd {
@@ -66,8 +57,6 @@ fn build_cmd() -> Result<Option<String>> {
                     return Err(anyhow!("No value for {} group", group.name));
                 }
                 user_input.insert(group.name.clone(), value);
-                let result = (cmd.build)(&user_input);
-                writeln!(&mut stdout, "{}\r", result)?;
             }
             GroupValue::Flags(flags) => {
                 let mut used_flags = vec![];
@@ -75,20 +64,15 @@ fn build_cmd() -> Result<Option<String>> {
                 user_input.insert(group.name.clone(), combined.join(" "));
 
                 loop {
+                    let available_flags: Vec<_> = flags
+                        .iter()
+                        .filter(|flag| !used_flags.contains(flag))
+                        .collect();
                     let flag = view::Readline::new(&mut stdout)
                         .help((cmd.build)(&user_input))
-                        .choice(|input| {
-                            flags
-                                .iter()
-                                .filter(|flag| !used_flags.contains(flag))
-                                .filter(|flag| {
-                                    flag.description
-                                        .to_lowercase()
-                                        .contains(&input.to_lowercase())
-                                })
-                                .collect()
-                        })
-                        .context("Pick a flag")?;
+                        .choice(FixedComplete::new(&available_flags))
+                        .context("Pick a flag")?
+                        .cloned();
 
                     match flag {
                         Some(flag) => {
@@ -102,11 +86,21 @@ fn build_cmd() -> Result<Option<String>> {
                                 Some(expect) => match expect.value_type {
                                     ValueType::String | ValueType::Path | ValueType::Number => {
                                         let prefix = format!("{}:", flag.template);
-                                        let value = view::Readline::new(&mut stdout)
+                                        let mut readline = view::Readline::new(&mut stdout)
                                             .prefix(&prefix)
                                             .help(&flag.description)
-                                            .expect(expect.value_type.clone())
-                                            .line()?;
+                                            .expect(expect.value_type.clone());
+
+                                        let value = match &flag.suggest {
+                                            Some(suggest) => {
+                                                // Return either a choice or user input
+                                                let (choice, user_input) = readline
+                                                    .suggest(FixedComplete::new(&suggest))?;
+                                                choice.map(|c| c.clone()).unwrap_or(user_input)
+                                            }
+                                            None => readline.line()?,
+                                        };
+
                                         if value.is_empty() {
                                             return Err(anyhow!(
                                                 "No value for {} flag",
