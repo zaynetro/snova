@@ -126,9 +126,12 @@ impl<'s> Readline<'s> {
 
     /// Mutates the input based on the keys from stdin. It then returns the key
     /// for post processing.
-    fn read_key(&mut self, input: &mut String) -> Result<Key> {
-        let stdin = stdin();
-        for key in stdin.keys() {
+    fn read_key(
+        &mut self,
+        keys: impl Iterator<Item = std::result::Result<Key, std::io::Error>>,
+        input: &mut String,
+    ) -> Result<Key> {
+        for key in keys {
             let key = key?;
             match key {
                 Key::Ctrl('c') => {
@@ -187,6 +190,7 @@ impl<'s> Readline<'s> {
         };
         let mut choices = vec![];
         let mut choices_len = 0;
+        let mut keys = stdin().keys();
 
         // TODO: in case of error clean up always
         let choice = loop {
@@ -226,7 +230,7 @@ impl<'s> Readline<'s> {
             write!(self.stdout, "{} {}", fmt_text(&self.prefix), input)?;
             self.stdout.flush()?;
 
-            let key = match self.read_key(&mut input) {
+            let key = match self.read_key(&mut keys, &mut input) {
                 Ok(key) => key,
                 Err(e) => break Err(e),
             };
