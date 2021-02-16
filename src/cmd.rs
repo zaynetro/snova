@@ -12,6 +12,7 @@ pub struct Command {
 pub struct CmdGroup {
     pub name: String,
     pub expect: GroupValue,
+    pub suggest: Option<Vec<String>>,
     pub optional: bool,
 }
 

@@ -49,10 +49,19 @@ fn build_cmd() -> Result<Option<String>> {
         match &group.expect {
             GroupValue::Single(expect_type) => {
                 let prefix = format!("{}:", group.name);
-                let value = view::Readline::new(&mut stdout)
+                let mut readline = view::Readline::new(&mut stdout)
                     .prefix(&prefix)
-                    .expect(expect_type.clone())
-                    .line()?;
+                    .expect(expect_type.clone());
+                let value = match &group.suggest {
+                    Some(suggest) => {
+                        // Return either a choice or user input
+                        let (choice, user_input) =
+                            readline.suggest(FixedComplete::new(&suggest))?;
+                        choice.map(|c| c.clone()).unwrap_or(user_input)
+                    }
+                    None => readline.line()?,
+                };
+
                 if value.is_empty() {
                     return Err(anyhow!("No value for {} group", group.name));
                 }

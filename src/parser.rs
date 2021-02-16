@@ -27,6 +27,7 @@ struct CommandDef {
 #[derive(Debug, Serialize, Deserialize)]
 struct GroupDef {
     expect: Option<ValueTypeDef>,
+    suggest: Option<Vec<String>>,
     flags: Option<VecDeque<FlagDef>>,
 }
 
@@ -147,6 +148,7 @@ pub fn parse_defs(mut defs: CommandsDef) -> Result<Vec<Command>> {
                 (Some(expect), None) => {
                     cmd_groups.push(CmdGroup {
                         name: name.clone(),
+                        suggest: group.suggest,
                         expect: GroupValue::Single(ValueType::parse(&expect)?),
                         optional,
                     });
@@ -154,6 +156,7 @@ pub fn parse_defs(mut defs: CommandsDef) -> Result<Vec<Command>> {
                 (None, Some(flags)) => {
                     cmd_groups.push(CmdGroup {
                         name: name.clone(),
+                        suggest: group.suggest,
                         expect: GroupValue::Flags(prepare_flags(flags)?),
                         optional,
                     });
@@ -447,6 +450,7 @@ mod tests {
             "PATH".to_string(),
             GroupDef {
                 expect: Some("path".into()),
+                suggest: None,
                 flags: None,
             },
         );
@@ -454,6 +458,7 @@ mod tests {
             "OPTIONS".to_string(),
             GroupDef {
                 expect: None,
+                suggest: None,
                 flags: Some(VecDeque::from(vec![
                     FlagDef {
                         template: "-i".into(),
@@ -511,6 +516,7 @@ mod tests {
             "VALUE".to_string(),
             GroupDef {
                 expect: Some("string".into()),
+                suggest: None,
                 flags: None,
             },
         );
@@ -550,6 +556,7 @@ mod tests {
             "PATH".to_string(),
             GroupDef {
                 expect: Some("path".into()),
+                suggest: None,
                 flags: None,
             },
         );
@@ -579,6 +586,7 @@ mod tests {
             "OPTIONS".to_string(),
             GroupDef {
                 expect: None,
+                suggest: None,
                 flags: None,
             },
         );
