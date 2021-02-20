@@ -42,6 +42,8 @@ pub struct Readline<'s> {
     stdout: &'s mut dyn Write,
     help: Option<String>,
     scroll_offset: usize,
+    /// Cursor horizontal position
+    cursor: usize,
 }
 
 enum AutocompleteMode<A> {
@@ -68,6 +70,7 @@ impl<'s> Readline<'s> {
             stdout,
             help: None,
             scroll_offset: 0,
+            cursor: 0,
         }
     }
 
@@ -137,25 +140,33 @@ impl<'s> Readline<'s> {
                 Key::Ctrl('c') => {
                     return Err(anyhow!("Terminated"));
                 }
+                Key::Char('u') => {
+                    // Remove chars before the cursor
+                    input.drain(0..self.cursor);
+                    self.cursor = 0;
+                }
                 Key::Char('\n') => {}
                 Key::Char(c) => match &self.expect_input {
-                    Some(expect) if expect.is_valid_char(c) => {
-                        input.push(c);
-                    }
-                    Some(_) => {}
-                    None => {
-                        input.push(c);
+                    Some(expect) if !expect.is_valid_char(c) => {}
+                    _ => {
+                        input.insert(self.cursor, c);
+                        self.cursor += 1;
                     }
                 },
                 Key::Backspace => {
-                    input.pop();
+                    self.cursor = self.cursor.saturating_sub(1);
+                    if self.cursor == 0 {
+                        input.pop();
+                    } else {
+                        input.drain(self.cursor..self.cursor + 1);
+                    }
                 }
-                // TODO:
-                Key::Left => {}
-                // TODO:
-                Key::Right => {}
-                // TODO:
-                Key::Delete => {}
+                Key::Left => {
+                    self.cursor = self.cursor.saturating_sub(1);
+                }
+                Key::Right if self.cursor < input.len() => {
+                    self.cursor += 1;
+                }
                 _ => {}
             }
 
@@ -210,7 +221,7 @@ impl<'s> Readline<'s> {
                 }
 
                 if selected >= choices_len {
-                    selected = choices_len.max(1) - 1;
+                    selected = choices_len.saturating_sub(1);
                 }
 
                 let mut view_choices: Vec<&str> = choices.iter().map(|c| c.text()).collect();
@@ -227,7 +238,10 @@ impl<'s> Readline<'s> {
             }
 
             // Display user input
-            write!(self.stdout, "{} {}", fmt_text(&self.prefix), input)?;
+            write!(self.stdout, "{} {} ", fmt_text(&self.prefix), input,)?;
+            // Cursor position is 1 based.
+            let cursor_left = input.len().saturating_sub(self.cursor) + 1;
+            write!(self.stdout, "{}", cursor::Left(cursor_left as u16))?;
             self.stdout.flush()?;
 
             let key = match self.read_key(&mut keys, &mut input) {
@@ -266,7 +280,7 @@ impl<'s> Readline<'s> {
                         self.scroll_offset -= 1;
                     }
                 }
-                Key::Down | Key::Ctrl('k') if selected < (choices_len - 1) => {
+                Key::Down | Key::Ctrl('k') if selected < (choices_len.saturating_sub(1)) => {
                     selected += 1;
 
                     // If cursor moved outsize of visible window then scroll
