@@ -133,7 +133,7 @@ impl<'s> Readline<'s> {
                 Key::Ctrl('c') => {
                     return Err(anyhow!("Terminated"));
                 }
-                Key::Char('u') => {
+                Key::Ctrl('u') => {
                     // Remove chars before the cursor
                     input.drain(0..self.cursor);
                     self.cursor = 0;
