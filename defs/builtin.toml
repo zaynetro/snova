@@ -34,11 +34,19 @@ groups.OPTIONS.flags = [
 ]
 
 [[commands]]
+# This is a command template. Arguments in square brackets mean they are optional.
 template = "curl [_OPTIONS_] _URL_"
+# A command description.
 description = "Send an HTTP request (*curl*)"
 
+# Specify which values to accept (string/number/path)
 groups.URL.expect = "string"
+# OPTIONS group expects flags
 groups.OPTIONS.flags = [
+  # Define a flag template. A template can either include an argument or not.
+  # If you specified an argument then you can set which values an argument can expect (string/number/path).
+  # Set multiple to true if this flag could be specified more than once.
+  # Set suggest to a list of suggested options. Note, that user can still specify a custom option. These values are mostly for guidance and help.
   { template = "*-H* _VALUE_", description = "Include a header (e.g -H \"Content-Type: application/json\")", expect = "string", multiple = true },
   { template = "*-X* _METHOD_", description = "Set a request method", expect = "string", suggest = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]  },
   { template = "-v", description = "Verbose logging" },
