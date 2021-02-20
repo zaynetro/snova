@@ -1,6 +1,9 @@
 //! Parses commands definition files
 
-use std::collections::{HashMap, VecDeque};
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, VecDeque},
+};
 
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -164,7 +167,18 @@ pub fn parse_defs(mut defs: CommandsDef) -> Result<Vec<Command>> {
             }
         }
 
-        // TODO: sort cmd_groups to first show required groups
+        cmd_groups.sort_by(|a, b| {
+            // Required group goes before optional
+            // Optional groups are equal
+            // Required groups are equal
+            if !a.optional && b.optional {
+                Ordering::Less
+            } else if a.optional && !b.optional {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        });
 
         let build = move |user_input: &HashMap<String, String>| -> String {
             let mut parts = vec![];
@@ -500,7 +514,11 @@ mod tests {
         assert_eq!("grep [_OPTIONS_] _PATH_", cmd.template);
         assert_eq!(2, cmd.groups.len(), "Groups len");
 
-        // TODO: assert flags
+        assert_eq!("PATH", cmd.groups[0].name);
+        assert_eq!("OPTIONS", cmd.groups[1].name);
+
+        let expect_flags = &cmd.groups[1].expect;
+        assert!(matches!(expect_flags, GroupValue::Flags(flags) if flags.len() == 2));
 
         let mut user_input = HashMap::new();
         user_input.insert("PATH".to_string(), "./one".to_string());
