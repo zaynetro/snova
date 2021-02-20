@@ -21,7 +21,7 @@ description = "Find files or directories (*find*)"
 
 groups.PATH.expect = "path"
 groups.EXPRESSION.flags = [
-  { template = "*-iname* _PATTERN_", description = "File name pattern", expect = "string" },
+  { template = "*-iname* _PATTERN_", description = "File name pattern (e.g '*one*')", expect = "string" },
 ]
 
 [[commands]]
@@ -39,9 +39,9 @@ description = "Send an HTTP request (*curl*)"
 
 groups.URL.expect = "string"
 groups.OPTIONS.flags = [
-  { template = "*-H* _VALUE_", description = "Include header (e.g -H \"Content-Type: application/json\")", expect = "string", multiple = true },
-  { template = "*-X* _METHOD_", description = "Specify a request method to use", expect = "string", suggest = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]  },
+  { template = "*-H* _VALUE_", description = "Include a header (e.g -H \"Content-Type: application/json\")", expect = "string", multiple = true },
+  { template = "*-X* _METHOD_", description = "Set a request method", expect = "string", suggest = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]  },
   { template = "-v", description = "Verbose logging" },
-  { template = "*-d* _DATA_", description = "Specify request payload (use '@myfile.txt' to read data from file)", expect = "string" },
+  { template = "*-d* _DATA_", description = "Set request payload (use '@myfile.txt' to read data from file)", expect = "string" },
   { template = "-L", description = "Follow redirects" },
 ]
