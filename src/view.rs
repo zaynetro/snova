@@ -14,13 +14,6 @@ pub trait Choice {
     fn text(&self) -> &str;
 }
 
-// Dummy implementation that we use to satisfy the compiler (see Readline::line).
-impl Choice for () {
-    fn text(&self) -> &str {
-        ""
-    }
-}
-
 impl Choice for String {
     fn text(&self) -> &str {
         &self
@@ -123,7 +116,7 @@ impl<'s> Readline<'s> {
 
     /// Read a single line
     pub fn line<'c>(&mut self) -> Result<String> {
-        let (_, text) = self.run(AutocompleteMode::None::<FixedComplete<'c, ()>>)?;
+        let (_, text) = self.run(AutocompleteMode::None::<FixedComplete<'c, String>>)?;
         Ok(text)
     }
 
