@@ -28,7 +28,7 @@ groups.EXPRESSION.flags = [
 template = "git config [_OPTIONS_] user.email _EMAIL_"
 description = "Set git email address (*git*)"
 
-groups.EMAIL.expect = "path"
+groups.EMAIL.expect = "string"
 groups.OPTIONS.flags = [
   { template = "--global", description = " Write to global *~/.gitconfig* file rather than the repository *.git/config*" },
 ]
@@ -53,3 +53,9 @@ groups.OPTIONS.flags = [
   { template = "*-d* _DATA_", description = "Set request payload (use '@myfile.txt' to read data from file)", expect = "string" },
   { template = "-L", description = "Follow redirects" },
 ]
+
+[[commands]]
+template = "ssh-keygen -t ed25519 -C '_EMAIL_'"
+description = "Generate an SSH key (ssh-keygen)"
+
+groups.EMAIL.expect = "string"
